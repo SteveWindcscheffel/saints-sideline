@@ -325,6 +325,7 @@ button:disabled { cursor: default; }
   var COURT = 5;               // players on court
   var DUE_GAP = 3 * 60 * 1000; // flag a swap once the minutes gap reaches 3:00
   var UNDO_MS = 8000;
+  var MAX_REC = 2;             // suggest at most this many swaps per sub window
 
   var EXAMPLE = [[2, 'Zoe Martin'], [4, 'Sam Patel'], [7, 'Mia Thompson'], [8, 'Leo Garcia'], [9, 'Lily Chen'],
     [11, 'Ava Nguyen'], [12, 'Chloe Davis'], [15, 'Noah Brown'], [23, 'Jordan Lee'], [31, 'Ethan Wilson']];
@@ -633,8 +634,8 @@ button:disabled { cursor: default; }
     var offs = g.on.slice().sort(function (a, b) { return courtPriority(g, a, true) - courtPriority(g, b, true) || byNum(a, b); });
     var ons = availBench(g).sort(function (a, b) { return courtPriority(g, b, false) - courtPriority(g, a, false) || byNum(a, b); });
     var R = { key: w.key, at: w.at, off: [], on: [] };
-    for (var i = 0; i < Math.min(offs.length, ons.length); i++) {
-      if (courtPriority(g, ons[i], false) > courtPriority(g, offs[i], true) + 0.5) { R.off.push(offs[i]); R.on.push(ons[i]); }
+    for (var i = 0; i < Math.min(offs.length, ons.length, MAX_REC); i++) {
+      if (courtPriority(g, ons[i], false) > courtPriority(g, offs[i], true) + 1) { R.off.push(offs[i]); R.on.push(ons[i]); }
     }
     return R;
   }
@@ -645,7 +646,7 @@ button:disabled { cursor: default; }
     var R = g.rec;
     var off = R.off.filter(function (id) { return isOn(g, id); });
     var on = R.on.filter(function (id) { return !isOn(g, id) && !g.p[id].fouled; });
-    var n = Math.min(off.length, on.length);
+    var n = Math.min(off.length, on.length, MAX_REC);
     if (!n) return null;
     return { key: R.key, at: R.at, off: off.slice(0, n), on: on.slice(0, n) };
   }

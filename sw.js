@@ -1,5 +1,5 @@
 // Saints Sideline offline support: keeps the app and fonts on the phone so it opens with no gym wifi.
-const CACHE = 'saints-sideline-v5';
+const CACHE = 'saints-sideline-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-64.png'];
 
 self.addEventListener('install', (e) => {
