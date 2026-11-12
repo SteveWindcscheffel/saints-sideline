@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saints Sideline</title>
+<meta name="description" content="Sideline minutes and subs for the Saints.">
+<meta name="theme-color" content="#C81E2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Saints">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" href="./icons/favicon-64.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500;600;700&family=Graduate&display=swap">
+<style>
+/* One-screen sideline app: red team bar, big clock, five thumb-sized player cards, action dock at the bottom. */
+:root, body.theme-light {
+  --bg: #F3F5F8; --surface: #FFFFFF; --surface-2: #E9EDF2; --line: #E1E6ED; --line-strong: #CBD2DC;
+  --ink: #0E1726; --muted: #4A5568;
+  --primary: #C81E2E; --primary-press: #9E1622; --primary-text: #C81E2E; --on-primary: #FFFFFF;
+  --bar: #C81E2E; --on-bar: #FFFFFF; --bar-edge: transparent;
+  --strong: #0E1726; --on-strong: #FFFFFF;
+  --court: #1458C7; --on-court: #FFFFFF; --court-tint: #EAF1FC;
+  --bench-fill: #EEF1F5; --bench-line: #8C96A6; --bench-ink: #2B3442;
+  --off: #FFC233; --on-off: #261A00; --off-tint: #FFF6DD; --off-edge: #B88200; --off-text: #6B4A00;
+  --on: #2FB38A; --on-on: #032419; --on-tint: #E4F6EF; --on-edge: #1E8A69; --on-text: #145C46;
+  --toast: #0E1726; --on-toast: #FFFFFF; --toast-muted: #CBD2DC;
+  --scrim: rgba(14, 23, 38, 0.6);
+  --display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --text: Barlow, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --brand: Graduate, 'Barlow Condensed', Georgia, serif;
+}
+body.theme-light { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A0E15; --surface: #141A24; --surface-2: #1F2733; --line: #343E4D; --line-strong: #46505F;
+    --ink: #F4F6FA; --muted: #A9B3C2;
+    --primary: #D9303F; --primary-press: #A81F2C; --primary-text: #FF6B76;
+    --bar: #141A24; --on-bar: #F4F6FA; --bar-edge: #D9303F;
+    --strong: #F4F6FA; --on-strong: #0A0E15;
+    --court: #2E74E6; --court-tint: #13233F;
+    --bench-fill: #1C2431; --bench-line: #6B778A; --bench-ink: #D5DCE6;
+    --off-tint: #2B230D; --off-edge: #FFC233; --off-text: #FFD66B;
+    --on-tint: #0F2A22; --on-edge: #2FB38A; --on-text: #7FDDBD;
+    --toast: #F4F6FA; --on-toast: #0A0E15; --toast-muted: #343E4D;
+    --scrim: rgba(0, 0, 0, 0.62);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"], body.theme-dark {
+  --bg: #0A0E15; --surface: #141A24; --surface-2: #1F2733; --line: #343E4D; --line-strong: #46505F;
+  --ink: #F4F6FA; --muted: #A9B3C2;
+  --primary: #D9303F; --primary-press: #A81F2C; --primary-text: #FF6B76;
+  --bar: #141A24; --on-bar: #F4F6FA; --bar-edge: #D9303F;
+  --strong: #F4F6FA; --on-strong: #0A0E15;
+  --court: #2E74E6; --court-tint: #13233F;
+  --bench-fill: #1C2431; --bench-line: #6B778A; --bench-ink: #D5DCE6;
+  --off-tint: #2B230D; --off-edge: #FFC233; --off-text: #FFD66B;
+  --on-tint: #0F2A22; --on-edge: #2FB38A; --on-text: #7FDDBD;
+  --toast: #F4F6FA; --on-toast: #0A0E15; --toast-muted: #343E4D;
+  --scrim: rgba(0, 0, 0, 0.62);
+  color-scheme: dark;
+}
+
+html { height: 100%; box-sizing: border-box; }
+body { height: 100%; margin: 0; touch-action: manipulation; background: var(--bg); color: var(--ink); font-family: var(--text); font-size: 17px; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after { box-sizing: border-box; }
+button { font: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--court); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.app { position: relative; height: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+/* top bar */
+.bar { flex: none; height: 72px; display: flex; align-items: center; gap: 4px; padding-inline: 8px; background: var(--bar); color: var(--on-bar); box-shadow: inset 0 -4px 0 var(--bar-edge); }
+.bar h1 { flex: 1; min-width: 0; margin: 0; text-align: center; font: 800 24px/1 var(--display); text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .brand { text-align: left; padding-left: 12px; font: 400 26px/1 var(--brand); text-transform: none; text-shadow: 2px 2px 0 var(--court); }
+.ibtn { width: 56px; height: 56px; flex: none; border: 0; border-radius: 14px; background: transparent; color: inherit; display: grid; place-items: center; }
+.ibtn:active { background: rgba(255,255,255,0.16); }
+.sp56 { width: 56px; flex: none; }
+
+/* scroll body + dock */
+.body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.body.tight { padding: 8px 16px; gap: 6px; }
+.dock { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+.dock.row-dock { flex-direction: row; align-items: center; gap: 12px; }
+.grow { flex: 1; }
+
+/* buttons */
+.btn { width: 100%; height: 72px; border: 0; border-radius: 16px; background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: 12px; font: 800 28px/1 var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+.btn:active:not(:disabled) { background: var(--primary-press); }
+.btn:disabled { background: var(--surface-2); color: var(--muted); }
+.btn-text { width: 100%; height: 56px; border: 0; border-radius: 14px; background: transparent; color: var(--ink); font: 700 19px var(--text); }
+.btn-text:active { background: var(--surface-2); }
+.btn-text.danger { color: var(--primary-text); }
+.btn-line { width: 100%; min-height: 64px; border: 3px solid var(--ink); border-radius: 16px; background: transparent; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; font: 800 22px/1.1 var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+.btn-line.warn { border-color: var(--primary-text); color: var(--primary-text); }
+.hint { font-size: 15px; font-weight: 600; color: var(--muted); text-align: center; }
+
+/* labels & groups */
+.label { font: 700 17px var(--display); letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; padding-inline: 4px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.group { background: var(--surface); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; flex: none; }
+.row { width: 100%; min-height: 72px; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 8px 16px 8px 20px; display: flex; align-items: center; gap: 14px; color: var(--ink); text-align: left; }
+.row:last-child { border-bottom: 0; }
+.row:active { background: var(--surface-2); }
+.row .num { width: 44px; flex: none; font: 800 28px/1 var(--display); }
+.row .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .t { font-weight: 600; font-size: 19px; }
+.row .s { font-size: 15px; color: var(--muted); }
+.row .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
+.row.static:active { background: transparent; }
+.empty-row { padding: 20px; font-size: 16px; color: var(--muted); }
+
+/* segmented */
+.seg { height: 56px; flex: none; background: var(--surface-2); border-radius: 14px; padding: 4px; display: flex; gap: 4px; }
+.seg.tall { height: 64px; }
+.seg button { flex: 1; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 800 20px/1 var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+.seg button[aria-pressed="true"] { background: var(--strong); color: var(--on-strong); }
+.seg.tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(14,23,38,0.2); }
+.tabs-wrap { flex: none; padding: 8px 16px 4px; }
+
+/* switch */
+.swl { font: 800 18px var(--display); letter-spacing: 0.06em; color: var(--muted); }
+.swl.is-on { color: var(--primary-text); }
+.sw { width: 64px; height: 40px; flex: none; border-radius: 999px; background: var(--surface-2); border: 3px solid var(--bench-line); padding: 2px; display: flex; justify-content: flex-start; }
+.sw .k { width: 30px; height: 30px; border-radius: 15px; background: var(--muted); display: grid; place-items: center; }
+.sw.is-on { background: var(--primary); border: 0; padding: 4px; justify-content: flex-end; }
+.sw.is-on .k { width: 32px; height: 32px; border-radius: 16px; background: #FFFFFF; color: var(--primary); }
+
+/* clock */
+.clock { flex: none; background: var(--surface); border-bottom: 1px solid var(--line); padding: 12px 16px 12px 20px; display: flex; align-items: center; gap: 12px; }
+.clock.paused { margin: 12px 16px 0; border: 3px dashed var(--muted); border-radius: 20px; padding: 10px 12px 10px 18px; }
+.clock .lbl { display: flex; align-items: center; gap: 8px; font: 700 16px var(--display); letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+.dot { width: 10px; height: 10px; border-radius: 5px; background: var(--primary); }
+.digits { font: 800 72px/0.95 var(--display); font-variant-numeric: tabular-nums; }
+.clock.paused .digits { color: var(--muted); }
+.cbtn { width: 72px; height: 72px; flex: none; border: 0; border-radius: 36px; background: var(--strong); color: var(--on-strong); display: grid; place-items: center; }
+.cbtn.go { width: 80px; height: 80px; border-radius: 40px; }
+.ebtn { width: 56px; height: 56px; flex: none; border: 0; border-radius: 28px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; }
+.ebtn:active { background: var(--primary-press); }
+.banner { flex: none; margin: 10px 16px 0; padding: 12px 16px; border-radius: 14px; background: var(--surface-2); display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--bench-ink); }
+
+/* player cards */
+.card { width: 100%; height: 86px; flex: none; border: 2px solid var(--line); background: var(--surface); border-radius: 18px; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 12px; text-align: left; color: var(--ink); }
+.card:active { filter: brightness(0.96); }
+.card.st-off { border: 3px solid var(--off-edge); background: var(--off-tint); }
+.card.st-on { border: 3px solid var(--on-edge); background: var(--on-tint); }
+.badge { width: 60px; height: 60px; flex: none; border-radius: 14px; display: grid; place-items: center; font: 800 36px/1 var(--display); }
+.badge.court { background: var(--court); color: var(--on-court); }
+.badge.bench { background: var(--bench-fill); border: 3px solid var(--bench-line); color: var(--bench-ink); }
+.badge.off { background: var(--off); color: var(--on-off); }
+.badge.on { background: var(--on); color: var(--on-on); }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+.name { max-width: 100%; font-weight: 700; font-size: 20px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip { height: 28px; padding: 0 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; white-space: nowrap; }
+.chip.court { background: var(--court); color: var(--on-court); }
+.chip.bench { background: var(--bench-fill); border: 2px solid var(--bench-line); color: var(--bench-ink); }
+.chip.off { background: var(--off); color: var(--on-off); }
+.chip.on { background: var(--on); color: var(--on-on); }
+.chip.lg { height: 32px; width: 92px; font-size: 15px; }
+.time { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+.big { font: 800 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.card.on-bench .big { color: var(--muted); }
+.small { font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card.st-off .small { color: var(--off-text); font-weight: 700; }
+.card.st-on .small { color: var(--on-text); font-weight: 700; }
+.chips { display: flex; flex-direction: column; gap: 4px; flex: none; }
+
+/* sheet */
+.scrim { position: absolute; inset: 0; z-index: 20; background: var(--scrim); display: flex; flex-direction: column; justify-content: flex-end; }
+.sheet { background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 14px; max-height: 90%; overflow-y: auto; }
+.grab { align-self: center; width: 44px; height: 5px; border-radius: 3px; background: var(--bench-line); flex: none; }
+.sheet h2 { margin: 0; font: 800 30px/1.05 var(--display); text-transform: uppercase; }
+.sheet .sub { font-size: 16px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opt { width: 100%; min-height: 72px; flex: none; border: 2px solid var(--line); border-radius: 16px; background: var(--surface); padding: 8px 16px; display: flex; align-items: center; gap: 12px; color: var(--ink); text-align: left; }
+.opt[aria-pressed="true"] { border: 3px solid var(--ink); background: var(--on-tint); }
+.opt.pick-off[aria-pressed="true"] { background: var(--off-tint); }
+.opt.pick-court[aria-pressed="true"] { border-color: var(--court); background: var(--court-tint); }
+.opt .num { width: 40px; flex: none; font: 800 30px/1 var(--display); }
+.opt .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.opt .t { font-weight: 700; font-size: 19px; }
+.opt .s { font-size: 15px; font-weight: 600; color: var(--muted); }
+.opt .picked { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; }
+.opt.slim { min-height: 60px; }
+.card.picked { border: 3px solid var(--ink); background: var(--surface-2); }
+.tick { width: 34px; height: 34px; flex: none; border-radius: 17px; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+.prompt { flex: none; margin: 8px 16px 0; padding: 10px 14px; border-radius: 14px; background: var(--strong); color: var(--on-strong); font-weight: 700; font-size: 16px; line-height: 1.3; }
+.btn-side { height: 72px; flex: none; padding: 0 16px; border: 3px solid var(--ink); border-radius: 16px; background: transparent; color: var(--ink); font: 800 20px var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+.sheet .label { display: flex; align-items: center; gap: 6px; margin-bottom: -6px; }
+.sheet-foot { position: sticky; bottom: -20px; margin-bottom: -20px; padding: 10px 0 20px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.two { display: flex; gap: 8px; }
+.two .btn-text { flex: 1; }
+.btn-text.strong { border: 2px solid var(--ink); }
+
+/* toast */
+.toast { position: absolute; left: 16px; right: 16px; bottom: 112px; z-index: 15; background: var(--toast); color: var(--on-toast); border-radius: 20px; padding: 14px 12px 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+.toast .tt { font: 800 22px/1.05 var(--display); text-transform: uppercase; }
+.toast .ts { font-size: 15px; font-weight: 600; opacity: 0.8; }
+.toast .undo { height: 64px; padding: 0 18px; flex: none; border: 3px solid currentColor; border-radius: 14px; background: transparent; color: inherit; display: flex; align-items: center; gap: 8px; font: 800 22px var(--display); letter-spacing: 0.04em; }
+
+/* forms */
+.fields { display: flex; gap: 16px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field.grow { flex: 1; }
+.field label { font: 700 17px var(--display); letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+.field input { width: 100%; height: 96px; border: 2px solid var(--line-strong); border-radius: 16px; background: var(--surface); color: var(--ink); padding: 0 16px; font: 700 22px var(--text); }
+.field input.numin { width: 120px; text-align: center; padding: 0 8px; border: 3px solid var(--ink); font: 800 60px var(--display); }
+.err { font-weight: 700; color: var(--primary-text); }
+.stepper { background: var(--surface); border-radius: 20px; padding: 12px; display: flex; align-items: center; gap: 12px; }
+.stepper button { width: 72px; height: 72px; flex: none; border: 0; border-radius: 16px; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; }
+.stepper button:disabled { opacity: 0.4; }
+.stepper .val { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+.stepper .v { font: 800 72px/1 var(--display); font-variant-numeric: tabular-nums; }
+.stepper .u { font: 800 24px var(--display); color: var(--muted); }
+.note { background: var(--court-tint); color: var(--ink); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.4; }
+.note .acts { display: flex; gap: 8px; }
+.note .acts button { flex: 1; height: 56px; border: 2px solid var(--ink); border-radius: 12px; background: transparent; color: var(--ink); font: 800 19px var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* empty state */
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; padding: 16px; }
+.empty .art { width: 136px; height: 136px; border-radius: 68px; background: var(--surface); box-shadow: 0 0 0 2px var(--line); display: grid; place-items: center; color: var(--primary-text); }
+.empty h2 { margin: 0; font: 800 36px/1.05 var(--display); text-transform: uppercase; }
+.empty p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--muted); max-width: 300px; }
+
+/* counter + minutes bars */
+.counter { flex: none; padding: 14px 20px 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.counter .c { font: 800 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.counter .c span { color: var(--muted); }
+.head { display: flex; flex-direction: column; gap: 2px; padding-inline: 4px; }
+.head h2 { margin: 0; font: 800 34px/1.05 var(--display); text-transform: uppercase; }
+.head p { margin: 0; font-size: 16px; font-weight: 600; color: var(--muted); }
+.bars { background: var(--surface); border-radius: 20px; padding: 4px 16px; display: flex; flex-direction: column; flex: none; }
+.brow { min-height: 52px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.brow:last-child { border-bottom: 0; }
+.brow .n { width: 32px; flex: none; font: 800 22px var(--display); }
+.brow .nm { width: 96px; flex: none; display: flex; flex-direction: column; min-width: 0; }
+.brow .nm b { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brow .nm i { font-style: normal; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: var(--off-text); }
+.track { flex: 1; height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.fill { height: 12px; border-radius: 6px; background: var(--ink); }
+.brow .m { width: 56px; flex: none; text-align: right; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; flex: none; }
+.tile { background: var(--surface); border-radius: 16px; padding: 12px 16px; }
+.tile .v { font: 800 44px/1 var(--display); font-variant-numeric: tabular-nums; }
+.tile .k { font-size: 15px; font-weight: 600; color: var(--muted); }
+.copybox { width: 100%; min-height: 160px; border: 2px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 12px; font: 500 15px/1.4 var(--text); }
+.foot { font-size: 14px; line-height: 1.45; color: var(--muted); padding-inline: 4px; }
+</style>
+
+</head>
+<body>
+<div class="app" id="app" aria-live="off"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'saints-sideline-v1';
+  var COURT = 5;               // players on court
+  var DUE_GAP = 3 * 60 * 1000; // flag a swap once the minutes gap reaches 3:00
+  var UNDO_MS = 8000;
+
+  var EXAMPLE = [[2, 'Zoe Martin'], [4, 'Sam Patel'], [7, 'Mia Thompson'], [8, 'Leo Garcia'], [9, 'Lily Chen'],
+    [11, 'Ava Nguyen'], [12, 'Chloe Davis'], [15, 'Noah Brown'], [23, 'Jordan Lee'], [31, 'Ethan Wilson']];
+
+  /* ---------- icons ---------- */
+  var P = {
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    more: '<path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3.5"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    chev: '<path d="M9 5l7 7-7 7"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+    court: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18M5.6 5.6c3 3 3 9.8 0 12.8M18.4 5.6c-3 3-3 9.8 0 12.8"/>',
+    bench: '<path d="M6 11V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4M4 11h16M5 11v8M19 11v8M5 15h14"/>',
+    off: '<path d="M10 4H4v16h6M9 12h12M17 8l4 4-4 4"/>',
+    on: '<path d="M14 4h6v16h-6M3 12h12M11 8l4 4-4 4"/>',
+    sub: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+    pause: '<path d="M8 5v14M16 5v14"/>',
+    play: '<path d="M8 5v14l11-7z" fill="currentColor"/>',
+    undo: '<path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+    close: '<path d="M6 6l12 12M18 6 6 18"/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'
+  };
+  function ic(n, s, w) {
+    return '<svg width="' + (s || 28) + '" height="' + (s || 28) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 2.5) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+
+  /* ---------- state ---------- */
+  function fresh() {
+    return { v: 1, players: [], example: false, settings: { theme: 'auto', vibrate: true, wake: true },
+      setup: { format: 'halves', len: 20, even: true }, game: null, history: [] };
+  }
+  function load() {
+    try { var raw = localStorage.getItem(KEY); if (raw) { var s = JSON.parse(raw); if (s && s.v === 1) return s; } } catch (e) {}
+    return fresh();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  var S = load();
+  var V = { screen: null, tab: 'court', sheet: null, toast: null, draft: null, err: '', confirmRemove: false, lineup: [], histId: null, dueKey: null, copyText: null, sel: { off: [], on: [] }, stage: null };
+  function clearSel() { V.sel = { off: [], on: [] }; V.stage = null; }
+  function toggleIn(arr, id, limit) { var i = arr.indexOf(id); if (i !== -1) arr.splice(i, 1); else { if (limit > 0 && arr.length >= limit) arr.shift(); arr.push(id); } }
+
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function now() { return Date.now(); }
+  function pl(id) { for (var i = 0; i < S.players.length; i++) if (S.players[i].id === id) return S.players[i]; return null; }
+  function first(id) { var p = pl(id); return p ? p.name.split(' ')[0] : '?'; }
+  function num(id) { var p = pl(id); return p ? p.num : '?'; }
+  function byNum(a, b) { return (pl(a) ? pl(a).num : 0) - (pl(b) ? pl(b).num : 0); }
+  function sortedPlayers() { return S.players.slice().sort(function (a, b) { return a.num - b.num; }); }
+  function available() { return sortedPlayers().filter(function (p) { return !p.away; }); }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(ms) { var s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + pad(s % 60); }
+  function fmtClock(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+  function fmtDate(t) { try { return new Date(t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return new Date(t).toDateString(); } }
+
+  /* ---------- game maths (all timestamp based, so the clock survives the phone locking) ---------- */
+  function pElapsed(g) { return Math.min(g.len, g.el + (g.runAt ? now() - g.runAt : 0)); }
+  function gms(g) { return g.done + pElapsed(g); }
+  function isOn(g, id) { return g.on.indexOf(id) !== -1; }
+  function total(g, id) { var p = g.p[id]; return p.tot + (isOn(g, id) ? gms(g) - p.onAt : 0); }
+  function stint(g, id) { var p = g.p[id]; return isOn(g, id) ? gms(g) - p.onAt : gms(g) - p.offAt; }
+  function benchIds(g) { return g.roster.filter(function (id) { return !isOn(g, id); }); }
+  function need(count) { return Math.min(COURT, count); }
+  function periodName(g, n) { return g.format === 'halves' ? (n === 1 ? '1st half' : '2nd half') : 'Q' + n; }
+  function unitName(fmtName) { return fmtName === 'halves' ? 'half' : 'quarter'; }
+
+  function dueInfo(g) {
+    if (!g || !g.even) return null;
+    var b = benchIds(g);
+    if (!b.length || !g.on.length) return null;
+    var off = g.on.slice().sort(function (x, y) { return total(g, y) - total(g, x) || stint(g, y) - stint(g, x); })[0];
+    var on = b.slice().sort(function (x, y) { return total(g, x) - total(g, y) || stint(g, y) - stint(g, x); })[0];
+    return { off: off, on: on, due: total(g, off) - total(g, on) >= DUE_GAP };
+  }
+  function suggestedStarters(g) {
+    return g.roster.slice().sort(function (x, y) { return total(g, x) - total(g, y) || byNum(x, y); }).slice(0, need(g.roster.length));
+  }
+
+  function startGame(lineup) {
+    var roster = available().map(function (p) { return p.id; });
+    var g = { id: uid(), date: now(), format: S.setup.format, periods: S.setup.format === 'halves' ? 2 : 4,
+      len: S.setup.len * 60000, period: 1, even: S.setup.even, roster: roster, on: lineup.slice(),
+      done: 0, el: 0, runAt: now(), phase: 'live', p: {} };
+    roster.forEach(function (id) { g.p[id] = { tot: 0, onAt: lineup.indexOf(id) !== -1 ? 0 : null, offAt: 0 }; });
+    S.game = g; V.tab = 'court'; V.screen = null; V.dueKey = null; clearSel();
+  }
+  function toggleClock() {
+    var g = S.game;
+    if (g.runAt) { g.el = pElapsed(g); g.runAt = null; } else { g.runAt = now(); }
+  }
+  function endPeriod() {
+    var g = S.game, gm = gms(g);
+    g.on.forEach(function (id) { g.p[id].tot += gm - g.p[id].onAt; g.p[id].onAt = gm; });
+    g.done += pElapsed(g); g.el = 0; g.runAt = null;
+    g.phase = g.period < g.periods ? 'break' : 'final';
+    V.sheet = null; V.toast = null; V.screen = null; clearSel();
+  }
+  function startNext(lineup) {
+    var g = S.game, gm = gms(g);
+    g.roster.forEach(function (id) {
+      var was = isOn(g, id), will = lineup.indexOf(id) !== -1, p = g.p[id];
+      if (was && !will) { p.tot += gm - p.onAt; p.onAt = null; p.offAt = gm; }
+      if (!was && will) { p.onAt = gm; }
+    });
+    g.on = lineup.slice(); g.period += 1; g.phase = 'live'; g.el = 0; g.runAt = now();
+    V.screen = null; V.tab = 'court'; V.dueKey = null; clearSel();
+  }
+  function doSubs(offs, ons) {
+    var g = S.game, gm = gms(g);
+    var snap = JSON.stringify({ on: g.on, p: g.p });
+    offs.forEach(function (offId, i) {
+      var onId = ons[i], po = g.p[offId], pn = g.p[onId];
+      po.tot += gm - po.onAt; po.onAt = null; po.offAt = gm;
+      pn.onAt = gm;
+      g.on = g.on.map(function (x) { return x === offId ? onId : x; });
+    });
+    var names = function (ids) { return ids.map(function (id) { return '#' + num(id) + ' ' + first(id); }).join(', '); };
+    V.sheet = null; clearSel(); V.tab = 'court';
+    V.toast = { kind: 'sub', title: names(ons) + ' on · ' + names(offs) + ' off', snap: snap, until: now() + UNDO_MS };
+  }
+  function doSub(offId, onId) { doSubs([offId], [onId]); }
+  function undoSub() {
+    if (!V.toast || !V.toast.snap || !S.game) return;
+    var s = JSON.parse(V.toast.snap); S.game.on = s.on; S.game.p = s.p; V.toast = null; clearSel();
+  }
+  function gameRows(g) {
+    return g.roster.map(function (id) { var p = pl(id); return { num: p ? p.num : 0, name: p ? p.name : 'Removed player', tot: total(g, id) }; })
+      .sort(function (a, b) { return b.tot - a.tot || a.num - b.num; });
+  }
+  function finishGame() {
+    var g = S.game;
+    S.history.unshift({ id: g.id, date: g.date, format: g.format, periods: g.periods, len: g.len, played: gms(g), rows: gameRows(g) });
+    S.history = S.history.slice(0, 60);
+    S.players.forEach(function (p) { p.away = false; });
+    S.game = null; V.screen = 'roster';
+  }
+  function minutesText(h) {
+    var lines = ['Saints minutes – ' + fmtDate(h.date), h.periods + ' × ' + Math.round(h.len / 60000) + ' min ' + (h.format === 'halves' ? 'halves' : 'quarters'), ''];
+    h.rows.forEach(function (r) { lines.push('#' + r.num + ' ' + r.name + ' – ' + fmt(r.tot)); });
+    return lines.join('\n');
+  }
+
+  /* ---------- buzz + wake lock (both optional; ignored where the browser refuses) ---------- */
+  function buzz() { if (!S.settings.vibrate) return; try { if (navigator.vibrate) navigator.vibrate([180, 90, 180]); } catch (e) {} }
+  var wake = null;
+  function syncWake() {
+    var want = S.game && S.game.phase === 'live' && S.settings.wake && document.visibilityState === 'visible';
+    try {
+      if (want && !wake && navigator.wakeLock) {
+        navigator.wakeLock.request('screen').then(function (l) { wake = l; l.addEventListener('release', function () { wake = null; }); }).catch(function () {});
+      } else if (!want && wake) { wake.release().catch(function () {}); wake = null; }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', syncWake);
+
+  /* ---------- pieces ---------- */
+  function bar(title, left, right, brand) {
+    return '<header class="bar">' + (left || '<div class="sp56"></div>') +
+      '<h1' + (brand ? ' class="brand"' : '') + '>' + title + '</h1>' + (right || '<div class="sp56"></div>') + '</header>';
+  }
+  function ibtn(act, icon, label, id) {
+    return '<button type="button" class="ibtn" data-act="' + act + '"' + (id ? ' data-id="' + id + '"' : '') + ' aria-label="' + label + '">' + ic(icon, 28) + '</button>';
+  }
+  function sw(on) {
+    return '<span class="swl' + (on ? ' is-on' : '') + '">' + (on ? 'ON' : 'OFF') + '</span><span class="sw' + (on ? ' is-on' : '') + '"><span class="k">' + (on ? ic('check', 18, 3) : '') + '</span></span>';
+  }
+  function switchRow(act, title, sub, on) {
+    return '<button type="button" class="row" role="switch" aria-checked="' + on + '" data-act="' + act + '"><span class="main"><span class="t">' + title + '</span>' +
+      (sub ? '<span class="s">' + sub + '</span>' : '') + '</span>' + sw(on) + '</button>';
+  }
+  function chip(kind, text, lg) {
+    var icon = kind === 'court' ? 'court' : kind === 'bench' ? 'bench' : kind;
+    return '<span class="chip ' + kind + (lg ? ' lg' : '') + '">' + ic(icon, 18, 2.4) + text + '</span>';
+  }
+
+  /* ---------- screens ---------- */
+  function scFirst() {
+    return bar('SAINTS', null, ibtn('go', 'gear', 'History and settings', 'more'), true) +
+      '<main class="body"><div class="empty"><div class="art">' + ic('court', 76, 1.5) + '</div>' +
+      '<h2>No players yet</h2><p>Add your squad once. We’ll track every player’s minutes, every game.</p></div></main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="add">' + ic('plus', 28, 2.75) + 'Add players</button>' +
+      '<button type="button" class="btn-text" data-act="example">Try it with an example squad</button></div>';
+  }
+
+  function scRoster() {
+    var ps = sortedPlayers();
+    var rows = ps.map(function (p) {
+      return '<button type="button" class="row" data-act="edit" data-id="' + p.id + '"><span class="num">' + p.num + '</span><span class="main"><span class="t">' + esc(p.name) + '</span>' +
+        (p.away ? '<span class="tag">AWAY TODAY</span>' : '') + '</span>' + ic('chev', 22) + '</button>';
+    }).join('');
+    var note = S.example ? '<div class="note"><div><b>This is an example squad.</b> Tap a player to change their name and number, or clear it and add your own.</div>' +
+      '<div class="acts"><button type="button" data-act="clearExample">Clear all</button><button type="button" data-act="keepExample">Keep</button></div></div>' : '';
+    return bar('SAINTS', null, ibtn('add', 'plus', 'Add player') + ibtn('go', 'gear', 'History and settings', 'more'), true) +
+      '<main class="body">' + note + '<div class="stack"><div class="label">' + ps.length + ' player' + (ps.length === 1 ? '' : 's') + '</div><div class="group">' + rows + '</div></div></main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="go" data-id="setup"' + (available().length ? '' : ' disabled') + '>' + ic('play', 26) + 'New game</button></div>';
+  }
+
+  function scEdit() {
+    var d = V.draft, editing = !!d.id;
+    return bar(editing ? 'Edit player' : 'Add player', ibtn('go', 'back', 'Back', 'roster')) +
+      '<main class="body">' +
+      '<div class="fields"><div class="field"><label for="f-num">Number</label><input id="f-num" class="numin" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="' + esc(d.num) + '"></div>' +
+      '<div class="field grow"><label for="f-name">Name</label><input id="f-name" type="text" autocomplete="off" autocapitalize="words" value="' + esc(d.name) + '"></div></div>' +
+      (V.err ? '<div class="err" role="alert">' + esc(V.err) + '</div>' : '<div class="foot">The number shows on every card, so it’s the big one. Two players can’t share a number.</div>') +
+      '<div class="group">' + switchRow('draftAway', 'Away today', 'Leave out of the next game only', d.away) + '</div>' +
+      '<div class="grow"></div>' +
+      '<div class="stack" style="gap:6px"><button type="button" class="btn" data-act="savePlayer">' + ic('check', 28, 3) + (editing ? 'Save player' : 'Add player') + '</button>' +
+      (editing ? '<button type="button" class="btn-text danger" data-act="removePlayer">' + (V.confirmRemove ? 'Tap again to remove ' + esc(d.name || 'player') : 'Remove from roster') + '</button>' :
+        '<button type="button" class="btn-text" data-act="saveAndNext">Add and start another</button>') + '</div>' +
+      '</main>';
+  }
+
+  function scSetup() {
+    var st = S.setup, avail = available().length, total_ = S.players.length;
+    var unit = unitName(st.format);
+    return bar('New game', ibtn('go', 'back', 'Back', 'roster')) +
+      '<main class="body">' +
+      '<div class="stack"><div class="label">Game format</div><div class="seg tall">' +
+      '<button type="button" data-act="fmt" data-id="halves" aria-pressed="' + (st.format === 'halves') + '">2 halves</button>' +
+      '<button type="button" data-act="fmt" data-id="quarters" aria-pressed="' + (st.format === 'quarters') + '">4 quarters</button></div></div>' +
+      '<div class="stack"><div class="label">' + unit + ' length</div><div class="stepper">' +
+      '<button type="button" data-act="len" data-id="-1" aria-label="Shorter ' + unit + 's"' + (st.len <= 4 ? ' disabled' : '') + '>' + ic('minus', 30, 3) + '</button>' +
+      '<div class="val"><span class="v">' + st.len + '</span><span class="u">MIN</span></div>' +
+      '<button type="button" data-act="len" data-id="1" aria-label="Longer ' + unit + 's"' + (st.len >= 30 ? ' disabled' : '') + '>' + ic('plus', 30, 3) + '</button></div></div>' +
+      '<div class="group"><button type="button" class="row" data-act="go" data-id="available"><span class="main"><span class="t">Who’s playing today</span><span class="s">' + avail + ' of ' + total_ + ' players</span></span>' + ic('chev', 22) + '</button>' +
+      switchRow('even', 'Even out minutes', 'Flags who’s played most and who’s rested longest', st.even) + '</div>' +
+      '<div class="grow"></div>' +
+      '<button type="button" class="btn" data-act="toStarting"' + (avail ? '' : ' disabled') + '>Pick starting ' + (avail >= COURT ? 'five' : avail) + ic('chev', 28, 2.75) + '</button>' +
+      '</main>';
+  }
+
+  function scAvailable() {
+    var ps = sortedPlayers(), playing = available().length;
+    var rows = ps.map(function (p) {
+      return '<button type="button" class="row" role="switch" aria-checked="' + (!p.away) + '" data-act="togAway" data-id="' + p.id + '"><span class="num">' + p.num + '</span><span class="main"><span class="t">' + esc(p.name) + '</span><span class="s">' + (p.away ? 'Away today' : 'Playing') + '</span></span>' + sw(!p.away) + '</button>';
+    }).join('');
+    return bar('Who’s playing', ibtn('go', 'back', 'Back', 'setup')) +
+      '<main class="body"><div class="stack"><div class="label">' + playing + ' of ' + ps.length + ' playing</div><div class="group">' + rows + '</div></div></main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="go" data-id="setup">' + ic('check', 28, 3) + 'Done</button></div>';
+  }
+
+  function scStarting() {
+    var g = S.game, inBreak = !!(g && g.phase === 'break');
+    var ids = inBreak ? g.roster.slice().sort(byNum) : available().map(function (p) { return p.id; });
+    var n = need(ids.length), picked = V.lineup.length;
+    var opts = ids.map(function (id) {
+      var p = pl(id), on = V.lineup.indexOf(id) !== -1;
+      var extra = inBreak ? '<span class="s">' + fmt(total(g, id)) + ' played</span>' : '';
+      return '<button type="button" class="opt pick-court" aria-pressed="' + on + '" data-act="pickStart" data-id="' + id + '"><span class="num">' + p.num + '</span><span class="main"><span class="t">' + esc(p.name) + '</span>' + extra + '</span>' +
+        (on ? chip('court', 'COURT') : chip('bench', 'BENCH')) + '</button>';
+    }).join('');
+    var label = inBreak ? 'Start ' + periodName(g, g.period + 1) : 'Tip off';
+    var left = 'Pick ' + (n - picked) + ' more';
+    return bar(inBreak ? 'Who starts' : 'Starting five', ibtn('go', 'back', 'Back', inBreak ? 'break' : 'setup')) +
+      '<div class="counter"><div class="hint" style="text-align:left">Tap to put on court</div><div class="c">' + picked + '<span> / ' + n + '</span></div></div>' +
+      '<main class="body tight"><div class="opts">' + opts + '</div></main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="' + (inBreak ? 'startNextPicked' : 'tipOff') + '"' + (picked === n ? '' : ' disabled') + '>' +
+      (picked === n ? ic('play', 26) + label : left) + '</button></div>';
+  }
+
+  function card(g, id, d, side) {
+    var p = pl(id), st;
+    if (side === 'court') st = d && d.due && d.off === id ? 'off' : 'court';
+    else st = d && d.due && d.on === id ? 'on' : 'bench';
+    var chipTxt = { court: 'ON COURT', bench: 'ON BENCH', off: 'DUE OFF', on: 'DUE ON' }[st];
+    var picked = (side === 'court' ? V.sel.off : V.sel.on).indexOf(id) !== -1;
+    var chipKind = picked ? (side === 'court' ? 'off' : 'on') : st;
+    var chipLabel = picked ? (side === 'court' ? 'COMING OFF' : 'COMING ON') : chipTxt;
+    var small = side === 'court' ? '<span data-total="' + id + '">' + fmt(total(g, id)) + '</span> total' : '<span data-total="' + id + '">' + fmt(total(g, id)) + '</span> played';
+    var cls = 'card' + (picked ? ' picked' : st === 'off' ? ' st-off' : st === 'on' ? ' st-on' : '') + (side === 'bench' ? ' on-bench' : '');
+    var label = '#' + p.num + ' ' + p.name + ', ' + chipTxt.toLowerCase() + '. Tap to mark coming ' + (side === 'court' ? 'off' : 'on');
+    return '<button type="button" class="' + cls + '" aria-pressed="' + picked + '" data-act="' + (side === 'court' ? 'selOff' : 'selOn') + '" data-id="' + id + '" aria-label="' + esc(label) + '">' +
+      '<span class="badge ' + st + '">' + p.num + '</span>' +
+      '<span class="who"><span class="name">' + esc(p.name) + '</span>' + chip(chipKind, chipLabel) + '</span>' +
+      (picked ? '<span class="tick">' + ic('check', 22, 3.2) + '</span>' : '') +
+      '<span class="time"><span class="big" data-stint="' + id + '">' + fmt(stint(g, id)) + '</span><span class="small">' + small + '</span></span></button>';
+  }
+
+  function scLive() {
+    var g = S.game, d = dueInfo(g), running = !!g.runAt;
+    V.sel.off = V.sel.off.filter(function (id) { return isOn(g, id); });
+    V.sel.on = V.sel.on.filter(function (id) { return g.roster.indexOf(id) !== -1 && !isOn(g, id); });
+    V.dueKey = d ? d.off + '|' + d.on + '|' + d.due : '';
+    var pname = periodName(g, g.period).toUpperCase();
+    var clock = '<section class="clock' + (running ? '' : ' paused') + '"><div class="grow"><div class="lbl">' + (running ? '<span class="dot"></span>Running · ' : 'Paused · ') + pname + '</div>' +
+      '<div class="digits" data-clock>' + fmtClock(g.len - pElapsed(g)) + '</div></div>' +
+      '<button type="button" class="ebtn" data-act="endAsk" aria-label="End the ' + periodName(g, g.period) + '">' + ic('close', 26, 3.2) + '</button>' +
+      '<button type="button" class="cbtn' + (running ? '' : ' go') + '" data-act="clock" aria-label="' + (running ? 'Pause game clock' : 'Start game clock') + '">' + (running ? ic('pause', 30, 3) : ic('play', 34, 2)) + '</button></section>';
+    var banner = running ? '' : '<div class="banner">' + ic('pause', 22, 2.5) + 'Player timers are paused too. Subs still work.</div>';
+    var bench = benchIds(g);
+    var tabs = '<div class="tabs-wrap"><div class="seg tabs">' +
+      '<button type="button" data-act="tab" data-id="court" aria-pressed="' + (V.tab === 'court') + '">On court (' + g.on.length + ')</button>' +
+      '<button type="button" data-act="tab" data-id="bench" aria-pressed="' + (V.tab === 'bench') + '">Bench (' + bench.length + ')</button></div></div>';
+    var list;
+    if (V.tab === 'court') {
+      list = g.on.slice().sort(function (a, b) { return (d && d.due ? (b === d.off) - (a === d.off) : 0) || byNum(a, b); })
+        .map(function (id) { return card(g, id, d, 'court'); }).join('');
+    } else {
+      list = bench.length ? bench.slice().sort(function (a, b) { return (d && d.due ? (b === d.on) - (a === d.on) : 0) || byNum(a, b); })
+        .map(function (id) { return card(g, id, d, 'bench'); }).join('') : '<div class="empty-row">Everyone is on court.</div>';
+    }
+    var chips = d ? '<div class="chips" aria-label="Next swap: number ' + num(d.off) + ' off, number ' + num(d.on) + ' on">' +
+      chip(d.due ? 'off' : 'bench', '#' + num(d.off) + ' OFF', true).replace(ic('bench', 18, 2.4), ic('off', 18, 2.4)) +
+      chip(d.due ? 'on' : 'bench', '#' + num(d.on) + ' ON', true).replace(ic('bench', 18, 2.4), ic('on', 18, 2.4)) + '</div>' : '';
+    var nOff = V.sel.off.length, nOn = V.sel.on.length, stg = V.stage;
+    var names = function (ids) { return ids.map(function (id) { return '#' + num(id) + ' ' + esc(first(id)); }).join(', '); };
+    var cancel = '<button type="button" class="btn-side" data-act="clearSel">Cancel</button>';
+    var left = chips, main, prompt = '';
+    if (stg) {
+      var want = stg === 'pickOn' ? nOff : nOn, have = stg === 'pickOn' ? nOn : nOff, ready = want > 0 && want === have;
+      left = cancel;
+      main = '<button type="button" class="btn" data-act="subNow"' + (ready ? '' : ' disabled') + '>' + (ready ? ic('sub', 30) + 'Sub ' + want + (want > 1 ? ' players' : '') : 'Pick ' + (want - have) + ' more') + '</button>';
+      prompt = '<div class="prompt">' + (stg === 'pickOn' ? 'Pick ' + want + ' coming on for ' + names(V.sel.off) : 'Pick ' + want + ' coming off for ' + names(V.sel.on)) + '</div>';
+    } else if (nOff || nOn) {
+      left = cancel;
+      main = '<button type="button" class="btn" data-act="subNow">' + ic('sub', 30) + 'Sub now (' + Math.max(nOff, nOn) + ')</button>';
+      prompt = '<div class="prompt">' + (nOff ? 'Coming off: ' + names(V.sel.off) : '') + (nOff && nOn ? ' · ' : '') + (nOn ? 'Coming on: ' + names(V.sel.on) : '') + '</div>';
+    } else {
+      main = '<button type="button" class="btn" data-act="subNow"' + (bench.length ? '' : ' disabled') + '>' + ic('sub', 30) + 'Sub now</button>';
+    }
+    var dock = '<div class="dock row-dock">' + left + main + '</div>';
+    return bar('Saints', null, ibtn('more', 'more', 'Game options')) + clock + banner + tabs + prompt +
+      '<main class="body tight">' + list + '</main>' + dock + toast() + sheet();
+  }
+
+  function minutesBars(rows, tagFn) {
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.tot); }, 1);
+    return '<div class="bars">' + rows.map(function (r) {
+      var tag = tagFn ? tagFn(r) : '';
+      return '<div class="brow"><span class="n">' + r.num + '</span><span class="nm"><b>' + esc(r.name.split(' ')[0]) + '</b>' + (tag ? '<i>' + tag + '</i>' : '') + '</span>' +
+        '<span class="track"><span class="fill" style="display:block;width:' + Math.max(2, Math.round(r.tot / max * 100)) + '%"></span></span><span class="m">' + fmt(r.tot) + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function scBreak() {
+    var g = S.game, rows = gameRows(g), played = gms(g);
+    var starters = suggestedStarters(g), startNums = starters.map(function (id) { return num(id); });
+    var fair = played * need(g.roster.length) / g.roster.length;
+    var spread = rows.length ? rows[0].tot - rows[rows.length - 1].tot : 0;
+    var next = periodName(g, g.period + 1);
+    return bar(g.format === 'halves' ? 'Half-time' : periodName(g, g.period) + ' done', null) +
+      '<main class="body"><div class="head"><h2>' + (g.format === 'halves' ? '1st half minutes' : 'Minutes so far') + '</h2><p>Fair share is ' + fmt(fair) + ' each · spread ' + fmt(spread) + '</p></div>' +
+      minutesBars(rows, function (r) { return g.even && startNums.indexOf(r.num) !== -1 ? 'START ' + next.toUpperCase().replace(' HALF', '') : ''; }) +
+      (g.even ? '<div class="foot">Tagged players have played least, so they’re picked to start the ' + next + '.</div>' : '') + '</main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="startNextSuggested">' + ic('play', 26) + 'Start ' + next + '</button>' +
+      '<button type="button" class="btn-text" data-act="changeStarters">Change who starts</button></div>' + sheet();
+  }
+
+  function summary(h, closeAct, closeLabel, isLive) {
+    var rows = h.rows, spread = rows.length ? rows[0].tot - rows[rows.length - 1].tot : 0;
+    var least = rows.length ? rows[rows.length - 1].num : null;
+    return '<main class="body"><div class="tiles"><div class="tile"><div class="v">' + fmt(h.played) + '</div><div class="k">played · ' + rows.length + ' players</div></div>' +
+      '<div class="tile"><div class="v">' + fmt(spread) + '</div><div class="k">most vs least</div></div></div>' +
+      minutesBars(rows, function (r) { return r.num === least && rows.length > 1 ? 'LEAST TODAY' : ''; }) + '</main>' +
+      '<div class="dock"><button type="button" class="btn" data-act="copy">' + ic('copy', 26) + 'Copy minutes</button>' +
+      '<button type="button" class="btn-text" data-act="' + closeAct + '">' + closeLabel + '</button></div>';
+  }
+  function scFinal() {
+    var g = S.game;
+    var h = { date: g.date, format: g.format, periods: g.periods, len: g.len, played: gms(g), rows: gameRows(g) };
+    V.copyText = minutesText(h);
+    return bar('Full time', null) + summary(h, 'finish', 'Done – save game') + toast() + sheet();
+  }
+  function scHist() {
+    var h = null;
+    S.history.forEach(function (x) { if (x.id === V.histId) h = x; });
+    if (!h) { V.screen = 'more'; return scMore(); }
+    V.copyText = minutesText(h);
+    return bar(fmtDate(h.date), ibtn('go', 'back', 'Back', 'more')) + summary(h, 'delHist', V.confirmRemove ? 'Tap again to delete this game' : 'Delete this game') + toast() + sheet();
+  }
+
+  function scMore() {
+    var hist = S.history.length ? S.history.map(function (h) {
+      var spread = h.rows.length ? h.rows[0].tot - h.rows[h.rows.length - 1].tot : 0;
+      return '<button type="button" class="row" data-act="hist" data-id="' + h.id + '"><span class="main"><span class="t">' + fmtDate(h.date) + '</span><span class="s">' + h.rows.length + ' players · spread ' + fmt(spread) + '</span></span>' + ic('chev', 22) + '</button>';
+    }).join('') : '<div class="empty-row">Finished games show up here.</div>';
+    var t = S.settings.theme;
+    return bar('History & settings', ibtn('go', 'back', 'Back', 'roster')) +
+      '<main class="body"><div class="stack"><div class="label">Past games</div><div class="group">' + hist + '</div></div>' +
+      '<div class="stack"><div class="label">Settings</div><div class="group">' +
+      '<div class="row static" style="flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px 16px 20px"><span class="t">Appearance</span><div class="seg">' +
+      ['auto', 'light', 'dark'].map(function (k) { return '<button type="button" data-act="theme" data-id="' + k + '" aria-pressed="' + (t === k) + '">' + k + '</button>'; }).join('') + '</div></div>' +
+      switchRow('vibrate', 'Vibrate when due', 'Buzz when a swap is ready, where the phone allows it', S.settings.vibrate) +
+      switchRow('wake', 'Keep screen awake', 'During games only', S.settings.wake) + '</div></div>' +
+      '<div class="foot">Your squad and games are saved in this browser on this phone. Clearing your browser data removes them.</div></main>';
+  }
+
+  /* ---------- overlays ---------- */
+  function toast() {
+    var t = V.toast;
+    if (!t) return '';
+    if (t.kind === 'sub') {
+      var left = Math.max(0, Math.ceil((t.until - now()) / 1000));
+      return '<div class="toast" role="status"><span style="color:var(--on)">' + ic('check', 30, 3) + '</span><div class="grow"><div class="tt">' + esc(t.title) + '</div><div class="ts">Undo for <span data-undo-left>' + left + '</span> more seconds</div></div>' +
+        '<button type="button" class="undo" data-act="undo">' + ic('undo', 24, 2.75) + 'Undo</button></div>';
+    }
+    return '<div class="toast" role="status" style="bottom:150px"><span style="color:var(--on)">' + ic('check', 30, 3) + '</span><div class="grow"><div class="tt">' + esc(t.title) + '</div></div></div>';
+  }
+
+  function sheet() {
+    var s = V.sheet;
+    if (!s) return '';
+    var inner = '';
+    var g = S.game;
+    if (s.type === 'sub') {
+      var fixedOff = s.dir === 'off', d = dueInfo(g);
+      var cands = fixedOff ? benchIds(g).sort(function (a, b) { return total(g, a) - total(g, b) || byNum(a, b); })
+        : g.on.slice().sort(function (a, b) { return total(g, b) - total(g, a) || byNum(a, b); });
+      var p = pl(s.fixed);
+      inner = '<div><h2>Sub ' + (fixedOff ? 'off' : 'on') + ' #' + p.num + ' ' + esc(p.name.split(' ')[0]) + '</h2><div class="sub">' +
+        (fixedOff ? fmt(stint(g, s.fixed)) + ' on court · Who’s coming on?' : 'Rested ' + fmt(stint(g, s.fixed)) + ' · Who’s coming off?') + '</div></div>' +
+        '<div class="opts">' + cands.map(function (id) {
+          var q = pl(id), picked = s.pick === id;
+          var flag = d && d.due && (fixedOff ? d.on === id : d.off === id) ? (fixedOff ? 'Due on · ' : 'Due off · ') : '';
+          var info = fixedOff ? flag + 'rested ' + fmt(stint(g, id)) + ' · ' + fmt(total(g, id)) + ' played' : flag + fmt(stint(g, id)) + ' on · ' + fmt(total(g, id)) + ' total';
+          return '<button type="button" class="opt' + (fixedOff ? '' : ' pick-off') + '" aria-pressed="' + picked + '" data-act="pick" data-id="' + id + '"><span class="num">' + q.num + '</span><span class="main"><span class="t">' + esc(q.name) + '</span><span class="s">' + info + '</span></span>' +
+            (picked ? '<span class="picked">' + ic('check', 26, 3) + 'PICKED</span>' : '') + '</button>';
+        }).join('') + '</div>' +
+        '<div class="sheet-foot"><button type="button" class="btn" data-act="confirmSub"' + (s.pick ? '' : ' disabled') + '>' + ic('sub', 30) + 'Confirm sub</button>' +
+        '<div class="two"><button type="button" class="btn-text" data-act="closeSheet">Cancel</button><button type="button" class="btn-text strong" data-act="toMulti">Sub 2 or more</button></div></div>';
+    } else if (s.type === 'pickOff') {
+      inner = '<div><h2>Who’s coming off?</h2></div><div class="opts">' + g.on.slice().sort(byNum).map(function (id) {
+        var q = pl(id);
+        return '<button type="button" class="opt" data-act="subOff" data-id="' + id + '"><span class="num">' + q.num + '</span><span class="main"><span class="t">' + esc(q.name) + '</span><span class="s">' + fmt(stint(g, id)) + ' on · ' + fmt(total(g, id)) + ' total</span></span>' + ic('chev', 22) + '</button>';
+      }).join('') + '</div><div class="two"><button type="button" class="btn-text" data-act="closeSheet">Cancel</button><button type="button" class="btn-text strong" data-act="toMulti">Sub 2 or more</button></div>';
+    } else if (s.type === 'multi') {
+      var dm = dueInfo(g), nOff = s.off.length, nOn = s.on.length, ok = nOff > 0 && nOff === nOn;
+      var mOpt = function (id, isOff) {
+        var q = pl(id), picked = (isOff ? s.off : s.on).indexOf(id) !== -1;
+        var flag = dm && dm.due && (isOff ? dm.off === id : dm.on === id) ? (isOff ? 'Due off · ' : 'Due on · ') : '';
+        var info = isOff ? flag + fmt(stint(g, id)) + ' on · ' + fmt(total(g, id)) + ' total' : flag + 'rested ' + fmt(stint(g, id)) + ' · ' + fmt(total(g, id)) + ' played';
+        return '<button type="button" class="opt slim' + (isOff ? ' pick-off' : '') + '" aria-pressed="' + picked + '" data-act="' + (isOff ? 'mOff' : 'mOn') + '" data-id="' + id + '"><span class="num">' + q.num + '</span><span class="main"><span class="t">' + esc(q.name) + '</span><span class="s">' + info + '</span></span>' +
+          (picked ? '<span class="picked">' + ic('check', 26, 3) + '</span>' : '') + '</button>';
+      };
+      var offIds = g.on.slice().sort(function (a, b) { return total(g, b) - total(g, a) || byNum(a, b); });
+      var onIds = benchIds(g).sort(function (a, b) { return total(g, a) - total(g, b) || byNum(a, b); });
+      var btnText = ok ? ic('sub', 30) + 'Confirm ' + nOff + ' sub' + (nOff > 1 ? 's' : '') : (nOff === nOn ? 'Pick players' : 'Pick ' + Math.abs(nOff - nOn) + ' more coming ' + (nOff > nOn ? 'on' : 'off'));
+      inner = '<div><h2>Sub 2 or more</h2><div class="sub">Tap who’s coming off, then who’s coming on.</div></div>' +
+        '<div class="label">' + ic('off', 18, 2.4) + ' Coming off (' + nOff + ')</div><div class="opts">' + offIds.map(function (id) { return mOpt(id, true); }).join('') + '</div>' +
+        '<div class="label">' + ic('on', 18, 2.4) + ' Coming on (' + nOn + ')</div><div class="opts">' + onIds.map(function (id) { return mOpt(id, false); }).join('') + '</div>' +
+        '<div class="sheet-foot"><button type="button" class="btn" data-act="confirmMulti"' + (ok ? '' : ' disabled') + '>' + btnText + '</button>' +
+        '<button type="button" class="btn-text" data-act="closeSheet">Cancel</button></div>';
+    } else if (s.type === 'endP') {
+      var pe = periodName(g, g.period), last = g.period >= g.periods;
+      inner = '<div><h2>End the ' + pe + ' now?</h2><div class="sub">' + fmtClock(g.len - pElapsed(g)) + ' still on the clock' + (last ? ' · this finishes the game' : '') + '</div></div>' +
+        '<button type="button" class="btn" data-act="endPeriod">' + ic('close', 26, 3.2) + 'End ' + pe + '</button>' +
+        '<button type="button" class="btn-text" data-act="closeSheet">Cancel</button>';
+    } else if (s.type === 'more') {
+      var pn = periodName(g, g.period);
+      inner = '<div><h2>Game options</h2><div class="sub">' + pn.charAt(0).toUpperCase() + pn.slice(1) + ' · ' + fmtClock(g.len - pElapsed(g)) + ' left</div></div>' +
+        '<button type="button" class="btn-line" data-act="endPeriod">' + (s.confirm === 'end' ? 'Tap again to end the ' + pn : 'End the ' + pn + ' now') + '</button>' +
+        '<button type="button" class="btn-line warn" data-act="abandon">' + (s.confirm === 'abandon' ? 'Tap again – minutes won’t be saved' : 'Abandon game') + '</button>' +
+        '<button type="button" class="btn-text" data-act="closeSheet">Cancel</button>';
+    } else if (s.type === 'copy') {
+      inner = '<div><h2>Copy minutes</h2><div class="sub">Select the text below and copy it into your team chat.</div></div>' +
+        '<textarea id="copybox" class="copybox" readonly>' + esc(V.copyText || '') + '</textarea>' +
+        '<button type="button" class="btn-text" data-act="closeSheet">Close</button>';
+    }
+    return '<div class="scrim" data-act="closeSheet"><div class="sheet" data-act="noop" role="dialog" aria-modal="true"><div class="grab"></div>' + inner + '</div></div>';
+  }
+
+  /* ---------- render ---------- */
+  var app = document.getElementById('app');
+  function current() {
+    var g = S.game;
+    if (g) {
+      if (g.phase === 'live') return 'live';
+      if (g.phase === 'break') return V.screen === 'starting' ? 'starting' : 'break';
+      if (g.phase === 'final') return 'final';
+    }
+    var sc = V.screen;
+    if (sc === 'edit' || sc === 'more' || sc === 'hist') return sc;
+    if (!S.players.length) return 'first';
+    return sc || 'roster';
+  }
+  function render() {
+    document.body.classList.toggle('theme-light', S.settings.theme === 'light');
+    document.body.classList.toggle('theme-dark', S.settings.theme === 'dark');
+    var sc = current(), html;
+    if (sc === 'first') html = scFirst();
+    else if (sc === 'roster') html = scRoster();
+    else if (sc === 'edit') html = scEdit();
+    else if (sc === 'setup') html = scSetup();
+    else if (sc === 'available') html = scAvailable();
+    else if (sc === 'starting') html = scStarting();
+    else if (sc === 'live') html = scLive();
+    else if (sc === 'break') html = scBreak();
+    else if (sc === 'final') html = scFinal();
+    else if (sc === 'more') html = scMore();
+    else if (sc === 'hist') html = scHist();
+    else html = scRoster();
+    app.innerHTML = html;
+    app.setAttribute('data-screen', sc);
+    var box = document.getElementById('copybox');
+    if (box) { try { box.focus(); box.select(); } catch (e) {} }
+    syncWake();
+  }
+
+  function openEdit(id) {
+    var p = id ? pl(id) : null;
+    V.draft = { id: p ? p.id : null, num: p ? String(p.num) : '', name: p ? p.name : '', away: p ? !!p.away : false };
+    V.err = ''; V.confirmRemove = false; V.screen = 'edit';
+  }
+  function savePlayer() {
+    var d = V.draft, n = d.num.trim(), name = d.name.trim().replace(/\s+/g, ' ');
+    if (!/^\d{1,2}$/.test(n)) { V.err = 'Enter a jersey number from 0 to 99.'; return false; }
+    var nn = parseInt(n, 10);
+    var clash = S.players.filter(function (p) { return p.num === nn && p.id !== d.id; })[0];
+    if (clash) { V.err = '#' + nn + ' is already ' + clash.name + '. Pick another number.'; return false; }
+    if (!name) { V.err = 'Add the player’s name.'; return false; }
+    if (d.id) { var p = pl(d.id); p.num = nn; p.name = name; p.away = d.away; }
+    else S.players.push({ id: uid(), num: nn, name: name, away: d.away });
+    return true;
+  }
+
+  function copyMinutes() {
+    var text = V.copyText || '';
+    var done = function () { V.toast = { kind: 'msg', title: 'Minutes copied – paste into your team chat', until: now() + 3000 }; render(); };
+    var fail = function () { V.sheet = { type: 'copy' }; render(); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fail);
+      else fail();
+    } catch (e) { fail(); }
+  }
+
+  function act(a, id) {
+    var g = S.game;
+    switch (a) {
+      case 'noop': return;
+      case 'go': V.screen = id; V.confirmRemove = false; if (id === 'break') V.screen = null; break;
+      case 'add': openEdit(null); break;
+      case 'edit': openEdit(id); break;
+      case 'example':
+        S.players = EXAMPLE.map(function (e) { return { id: uid(), num: e[0], name: e[1], away: false }; });
+        S.example = true; V.screen = 'roster'; break;
+      case 'clearExample': S.players = []; S.example = false; V.screen = null; break;
+      case 'keepExample': S.example = false; break;
+      case 'draftAway': V.draft.away = !V.draft.away; break;
+      case 'savePlayer': if (savePlayer()) { V.screen = 'roster'; V.draft = null; } break;
+      case 'saveAndNext': if (savePlayer()) openEdit(null); break;
+      case 'removePlayer':
+        if (!V.confirmRemove) { V.confirmRemove = true; break; }
+        S.players = S.players.filter(function (p) { return p.id !== V.draft.id; });
+        V.confirmRemove = false; V.screen = 'roster'; break;
+      case 'fmt': S.setup.format = id; break;
+      case 'len': S.setup.len = Math.max(4, Math.min(30, S.setup.len + parseInt(id, 10))); break;
+      case 'even': S.setup.even = !S.setup.even; break;
+      case 'togAway': var tp = pl(id); if (tp) tp.away = !tp.away; break;
+      case 'toStarting': V.lineup = []; V.screen = 'starting'; break;
+      case 'pickStart':
+        var i = V.lineup.indexOf(id);
+        var cnt = S.game ? S.game.roster.length : available().length;
+        if (i !== -1) V.lineup.splice(i, 1); else if (V.lineup.length < need(cnt)) V.lineup.push(id);
+        break;
+      case 'tipOff': startGame(V.lineup); break;
+      case 'clock': toggleClock(); break;
+      case 'tab': V.tab = id; break;
+      case 'selOff': toggleIn(V.sel.off, id, V.stage === 'pickOff' ? V.sel.on.length : COURT); break;
+      case 'selOn': toggleIn(V.sel.on, id, V.stage === 'pickOn' ? V.sel.off.length : 0); break;
+      case 'clearSel': clearSel(); break;
+      case 'subNow':
+        var so = V.sel.off, sn = V.sel.on;
+        if (so.length && so.length === sn.length) { doSubs(so.slice(), sn.slice()); break; }
+        if (!so.length && !sn.length) {
+          var d = dueInfo(g);
+          if (!d) { V.toast = { kind: 'msg', title: 'Tap the players coming off first', until: now() + 2500 }; break; }
+          V.sel.off = [d.off];
+        }
+        if (V.sel.off.length > V.sel.on.length) { V.stage = 'pickOn'; V.tab = 'bench'; }
+        else { V.stage = 'pickOff'; V.tab = 'court'; }
+        break;
+      case 'subOff':
+        var d1 = dueInfo(g), b1 = benchIds(g);
+        if (!b1.length) return;
+        V.sheet = { type: 'sub', dir: 'off', fixed: id, pick: d1 ? d1.on : b1.slice().sort(function (x, y) { return total(g, x) - total(g, y); })[0] };
+        break;
+      case 'subOn':
+        var d2 = dueInfo(g);
+        V.sheet = { type: 'sub', dir: 'on', fixed: id, pick: d2 ? d2.off : g.on.slice().sort(function (x, y) { return total(g, y) - total(g, x); })[0] };
+        break;
+      case 'pick': V.sheet.pick = id; break;
+      case 'confirmSub':
+        var s = V.sheet;
+        if (s.dir === 'off') doSub(s.fixed, s.pick); else doSub(s.pick, s.fixed);
+        break;
+      case 'toMulti':
+        var s0 = V.sheet, offs0 = [], ons0 = [];
+        if (s0 && s0.type === 'sub') {
+          if (s0.dir === 'off') { offs0 = [s0.fixed]; if (s0.pick) ons0 = [s0.pick]; }
+          else { ons0 = [s0.fixed]; if (s0.pick) offs0 = [s0.pick]; }
+        }
+        V.sheet = { type: 'multi', off: offs0, on: ons0 };
+        break;
+      case 'mOff': case 'mOn':
+        var arr = a === 'mOff' ? V.sheet.off : V.sheet.on, j = arr.indexOf(id);
+        if (j !== -1) arr.splice(j, 1); else arr.push(id);
+        break;
+      case 'confirmMulti':
+        if (V.sheet.off.length && V.sheet.off.length === V.sheet.on.length) doSubs(V.sheet.off.slice(), V.sheet.on.slice());
+        break;
+      case 'undo': undoSub(); break;
+      case 'closeSheet': V.sheet = null; break;
+      case 'more': V.sheet = { type: 'more' }; break;
+      case 'endAsk': V.sheet = { type: 'endP' }; break;
+      case 'endPeriod':
+        endPeriod(); buzz(); break;
+      case 'abandon':
+        if (V.sheet.confirm !== 'abandon') { V.sheet.confirm = 'abandon'; break; }
+        S.game = null; V.sheet = null; V.toast = null; V.screen = 'roster'; break;
+      case 'startNextSuggested': startNext(suggestedStarters(g)); break;
+      case 'changeStarters': V.lineup = suggestedStarters(g); V.screen = 'starting'; break;
+      case 'startNextPicked': startNext(V.lineup); break;
+      case 'copy': copyMinutes(); return;
+      case 'finish': finishGame(); break;
+      case 'hist': V.histId = id; V.confirmRemove = false; V.screen = 'hist'; break;
+      case 'delHist':
+        if (!V.confirmRemove) { V.confirmRemove = true; break; }
+        S.history = S.history.filter(function (h) { return h.id !== V.histId; });
+        V.confirmRemove = false; V.screen = 'more'; break;
+      case 'theme': S.settings.theme = id; break;
+      case 'vibrate': S.settings.vibrate = !S.settings.vibrate; break;
+      case 'wake': S.settings.wake = !S.settings.wake; break;
+    }
+    save(); render();
+  }
+
+  app.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    act(el.getAttribute('data-act'), el.getAttribute('data-id'));
+  });
+  app.addEventListener('input', function (e) {
+    if (!V.draft) return;
+    if (e.target.id === 'f-num') V.draft.num = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (e.target.id === 'f-name') V.draft.name = e.target.value;
+  });
+  app.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && V.draft && (e.target.id === 'f-num' || e.target.id === 'f-name')) { e.preventDefault(); act('savePlayer'); }
+  });
+
+  /* ---------- tick: update numbers in place; full redraw only when something changes state ---------- */
+  function tick() {
+    if (V.toast && now() > V.toast.until) { V.toast = null; render(); return; }
+    var g = S.game;
+    if (!g || g.phase !== 'live') return;
+    if (g.runAt && pElapsed(g) >= g.len) { endPeriod(); save(); buzz(); render(); return; }
+    var c = app.querySelector('[data-clock]');
+    if (c) c.textContent = fmtClock(g.len - pElapsed(g));
+    app.querySelectorAll('[data-stint]').forEach(function (el) { var id = el.getAttribute('data-stint'); if (g.p[id]) el.textContent = fmt(stint(g, id)); });
+    app.querySelectorAll('[data-total]').forEach(function (el) { var id = el.getAttribute('data-total'); if (g.p[id]) el.textContent = fmt(total(g, id)); });
+    var u = app.querySelector('[data-undo-left]');
+    if (u && V.toast) u.textContent = Math.max(0, Math.ceil((V.toast.until - now()) / 1000));
+    var d = dueInfo(g), k = d ? d.off + '|' + d.on + '|' + d.due : '';
+    if (k !== V.dueKey) {
+      var wasDue = /\|true$/.test(V.dueKey || '');
+      if (d && d.due && !wasDue) buzz();
+      if (V.sheet) { V.dueKey = k; return; } // don't reshuffle under the coach's thumb
+      render();
+    }
+  }
+
+  render();
+  setInterval(tick, 250);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); }); }
+</script>
+</body>
+</html>
