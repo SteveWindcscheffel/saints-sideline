@@ -630,25 +630,35 @@ button:disabled { cursor: default; }
     var p = g.p[id], m = 60000;
     return -total(g, id) / m + 1.5 * (p.benchN || 0) + (onCourt ? -0.3 : 0.3) * stint(g, id) / m;
   }
-  function computeRec(g, w) {
-    var offs = g.on.slice().sort(function (a, b) { return courtPriority(g, a, true) - courtPriority(g, b, true) || byNum(a, b); });
-    var ons = availBench(g).sort(function (a, b) { return courtPriority(g, b, false) - courtPriority(g, a, false) || byNum(a, b); });
-    var R = { key: w.key, at: w.at, off: [], on: [] };
-    for (var i = 0; i < Math.min(offs.length, ons.length, MAX_REC); i++) {
-      if (courtPriority(g, ons[i], false) > courtPriority(g, offs[i], true) + 1) { R.off.push(offs[i]); R.on.push(ons[i]); }
+  // Take the top MAX_REC, plus anyone level with the last one picked (same times benched, court time within 5 sec).
+  function topWithTies(list, g) {
+    var out = list.slice(0, MAX_REC);
+    if (!out.length) return out;
+    var last = out[out.length - 1];
+    for (var i = MAX_REC; i < list.length; i++) {
+      var a = g.p[list[i]], b = g.p[last];
+      if ((a.benchN || 0) === (b.benchN || 0) && Math.abs(total(g, list[i]) - total(g, last)) < 5000) out.push(list[i]); else break;
     }
-    return R;
+    return out;
+  }
+  function computeRec(g, w) {
+    var bn = function (id) { return g.p[id].benchN || 0; };
+    var secs = function (id) { return Math.round(total(g, id) / 5000); }; // 5-second buckets so near-identical times count as level
+    // Coming off: fewest times benched first, then most court time, then longest current stint.
+    var offs = g.on.slice().sort(function (a, b) { return bn(a) - bn(b) || secs(b) - secs(a) || stint(g, b) - stint(g, a) || byNum(a, b); });
+    // Coming on: least court time first, then most times benched, then longest rest.
+    var ons = availBench(g).sort(function (a, b) { return secs(a) - secs(b) || bn(b) - bn(a) || stint(g, b) - stint(g, a) || byNum(a, b); });
+    return { v: 2, key: w.key, at: w.at, off: topWithTies(offs, g), on: topWithTies(ons, g) };
   }
   function recInfo(g) {
     var w = activeWindow(g);
     if (!w) return null;
-    if (!g.rec || g.rec.key !== w.key) { g.rec = computeRec(g, w); save(); }
+    if (!g.rec || g.rec.key !== w.key || g.rec.v !== 2) { g.rec = computeRec(g, w); save(); }
     var R = g.rec;
     var off = R.off.filter(function (id) { return isOn(g, id); });
     var on = R.on.filter(function (id) { return !isOn(g, id) && !g.p[id].fouled; });
-    var n = Math.min(off.length, on.length, MAX_REC);
-    if (!n) return null;
-    return { key: R.key, at: R.at, off: off.slice(0, n), on: on.slice(0, n) };
+    if (!off.length || !on.length) return null;
+    return { key: R.key, at: R.at, off: off, on: on };
   }
 
   function card(g, id, R, side) {
@@ -1007,7 +1017,10 @@ button:disabled { cursor: default; }
         if (!so.length && !sn.length) {
           var R0 = recInfo(g);
           if (!R0) { V.toast = { kind: 'msg', title: 'Tap the players coming off first', until: now() + 2500 }; break; }
-          V.sel.off = R0.off.slice(); V.sel.on = R0.on.slice(); V.tab = 'court'; break;
+          V.tab = 'court';
+          if (R0.off.length === R0.on.length) { V.sel.off = R0.off.slice(); V.sel.on = R0.on.slice(); }
+          else V.toast = { kind: 'msg', title: 'Some players are level – tap who’s coming off', until: now() + 3000 };
+          break;
         }
         if (V.sel.off.length > V.sel.on.length) { V.stage = 'pickOn'; V.tab = 'bench'; }
         else { V.stage = 'pickOff'; V.tab = 'court'; }
