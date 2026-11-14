@@ -310,6 +310,14 @@ button:disabled { cursor: default; }
 .mini button { width: 56px; height: 56px; border: 0; border-radius: 14px; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; }
 .mini button:disabled { opacity: 0.4; }
 .mini b { min-width: 64px; text-align: center; font: 800 24px var(--display); }
+.bcount { flex: none; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bc-n { display: flex; align-items: center; gap: 4px; font: 800 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.bc-l { font: 700 12px var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.card.st-off .bc-l { color: var(--off-text); }
+.card.st-on .bc-l { color: var(--on-text); }
+.chip.lg { width: auto; min-width: 92px; }
+@media (max-height: 800px) { .bc-n { font-size: 34px; } .bc-n svg { width: 20px; height: 20px; } }
+@media (max-height: 700px) { .bc-n { font-size: 30px; } }
 .copybox { width: 100%; min-height: 160px; border: 2px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 12px; font: 500 15px/1.4 var(--text); }
 .foot { font-size: 14px; line-height: 1.45; color: var(--muted); padding-inline: 4px; }
 </style>
@@ -568,10 +576,8 @@ button:disabled { cursor: default; }
       '<div class="val"><span class="v">' + st.len + '</span><span class="u">MIN</span></div>' +
       '<button type="button" data-act="len" data-id="1" aria-label="Longer ' + unit + 's"' + (st.len >= 30 ? ' disabled' : '') + '>' + ic('plus', 30, 3) + '</button></div></div>' +
       '<div class="group"><button type="button" class="row" data-act="go" data-id="available"><span class="main"><span class="t">Who’s playing today</span><span class="s">' + avail + ' of ' + total_ + ' players</span></span>' + ic('chev', 22) + '</button>' +
-      switchRow('even', 'Suggest subs', 'A minute before each sub time, based on minutes played and times benched', st.even) +
-      (st.even ? '<div class="row static"><span class="main"><span class="t">Sub every</span><span class="s">Game clock, each ' + unit + '</span></span><span class="mini">' +
-        '<button type="button" data-act="every" data-id="-1" aria-label="Shorter gap between subs"' + ((st.every || 5) <= 2 ? ' disabled' : '') + '>' + ic('minus', 22, 3) + '</button><b>' + (st.every || 5) + ' min</b>' +
-        '<button type="button" data-act="every" data-id="1" aria-label="Longer gap between subs"' + ((st.every || 5) >= 10 ? ' disabled' : '') + '>' + ic('plus', 22, 3) + '</button></span></div>' : '') + '</div>' +
+      switchRow('even', 'Suggest who’s next', 'Fewest times benched comes off first, then most minutes', st.even) + '</div>' +
+
       '<div class="grow"></div>' +
       '<button type="button" class="btn" data-act="toStarting"' + (avail ? '' : ' disabled') + '>Pick starting ' + (avail >= COURT ? 'five' : avail) + ic('chev', 28, 2.75) + '</button>' +
       '</main>';
@@ -651,52 +657,48 @@ button:disabled { cursor: default; }
     var ons = availBench(g).sort(function (a, b) { return secs(a) - secs(b) || bn(b) - bn(a) || stint(g, b) - stint(g, a) || byNum(a, b); });
     return { v: 2, key: w.key, at: w.at, off: topWithTies(offs, g), on: topWithTies(ons, g) };
   }
+  // Who's next, worked out fresh from the current state (no timed windows).
   function recInfo(g) {
-    var w = activeWindow(g);
-    if (!w) return null;
-    if (!g.rec || g.rec.key !== w.key || g.rec.v !== 2) { g.rec = computeRec(g, w); save(); }
-    var R = g.rec;
-    var off = R.off.filter(function (id) { return isOn(g, id); });
-    var on = R.on.filter(function (id) { return !isOn(g, id) && !g.p[id].fouled; });
-    if (!off.length || !on.length) return null;
-    return { key: R.key, at: R.at, off: off, on: on };
+    if (!g.even) return null;
+    var R = computeRec(g, { key: 'live', at: null });
+    if (!R.off.length || !R.on.length) return null;
+    return { key: R.off.join(',') + '>' + R.on.join(','), off: R.off, on: R.on };
   }
 
   function card(g, id, R, side) {
     var p = pl(id), pp = g.p[id], bn = pp.benchN || 0;
+    var count = '<span class="bcount" aria-label="Benched ' + bn + ' time' + (bn === 1 ? '' : 's') + '"><span class="bc-n">' + ic('bench', 24, 2.4) + bn + '</span><span class="bc-l">benched</span></span>';
     if (side === 'bench' && pp.fouled) {
       return '<div class="card on-bench fouled"><span class="badge bench">' + p.num + '</span>' +
-        '<span class="who"><span class="name">' + esc(p.name) + '</span><span class="chip out">' + ic('close', 16, 3) + 'FOULED OUT</span></span>' +
-        '<span class="time"><span class="big">' + fmt(total(g, id)) + '</span><span class="small">played</span></span></div>';
+        '<span class="who"><span class="name">' + esc(p.name) + '</span><span class="chip out">' + ic('close', 16, 3) + 'FOULED OUT</span></span>' + count + '</div>';
     }
     var st;
     if (side === 'court') st = R && R.off.indexOf(id) !== -1 ? 'off' : 'court';
     else st = R && R.on.indexOf(id) !== -1 ? 'on' : 'bench';
-    var chipTxt = { court: 'ON COURT', bench: 'ON BENCH', off: 'SUB OFF', on: 'SUB ON' }[st];
+    var chipTxt = { court: 'ON COURT', bench: 'ON BENCH', off: 'NEXT OFF', on: 'NEXT ON' }[st];
     var picked = (side === 'court' ? V.sel.off : V.sel.on).indexOf(id) !== -1;
     var chipKind = picked ? (side === 'court' ? 'off' : 'on') : st;
     var chipLabel = picked ? (side === 'court' ? 'COMING OFF' : 'COMING ON') : chipTxt;
-    var small = '<span data-total="' + id + '">' + fmt(total(g, id)) + '</span><span class="bn" title="Times on the bench">' + ic('bench', 14, 2.6) + '×' + bn + '</span>';
     var cls = 'card' + (picked ? ' picked' : st === 'off' ? ' st-off' : st === 'on' ? ' st-on' : '') + (side === 'bench' ? ' on-bench' : '');
     var label = '#' + p.num + ' ' + p.name + ', ' + chipTxt.toLowerCase() + ', benched ' + bn + ' times. Tap to mark coming ' + (side === 'court' ? 'off' : 'on');
     return '<button type="button" class="' + cls + '" aria-pressed="' + picked + '" data-act="' + (side === 'court' ? 'selOff' : 'selOn') + '" data-id="' + id + '" aria-label="' + esc(label) + '">' +
       '<span class="badge ' + st + '">' + p.num + (picked ? '<span class="tick">' + ic('check', 16, 3.4) + '</span>' : '') + '</span>' +
-      '<span class="who"><span class="name">' + esc(p.name) + '</span>' + chip(chipKind, chipLabel) + '</span>' +
-      '<span class="time"><span class="big" data-stint="' + id + '">' + fmt(stint(g, id)) + '</span><span class="small">' + small + '</span></span></button>';
+      '<span class="who"><span class="name">' + esc(p.name) + '</span>' + chip(chipKind, chipLabel) + '</span>' + count + '</button>';
   }
 
   function scLive() {
     var g = S.game, R = recInfo(g), running = !!g.runAt;
+    V.lastRec = R;
     V.sel.off = V.sel.off.filter(function (id) { return isOn(g, id); });
     V.sel.on = V.sel.on.filter(function (id) { return g.roster.indexOf(id) !== -1 && !isOn(g, id) && !g.p[id].fouled; });
     V.dueKey = R ? R.key : '';
     var pname = periodName(g, g.period).toUpperCase();
-    var lbl = (running ? '<span class="dot"></span>' : ic('pause', 16, 3) + 'Paused · ') + pname + (R ? ' · subs at ' + fmtClock(R.at) : '');
+    var lbl = (running ? '<span class="dot"></span>' : ic('pause', 16, 3) + 'Paused · ') + pname;
     var clock = '<section class="clock' + (running ? '' : ' paused') + '"><div class="grow"><div class="lbl">' + lbl + '</div>' +
       '<button type="button" class="digits-btn" data-act="adjust" aria-label="Adjust the clock"><span class="digits" data-clock>' + fmtClock(g.len - pElapsed(g)) + '</span></button></div>' +
       '<button type="button" class="ebtn" data-act="endAsk" aria-label="End the ' + periodName(g, g.period) + '">' + ic('close', 26, 3.2) + '</button>' +
       '<button type="button" class="cbtn' + (running ? '' : ' go') + '" data-act="clock" aria-label="' + (running ? 'Pause game clock' : 'Start game clock') + '">' + (running ? ic('pause', 30, 3) : ic('play', 34, 2)) + '</button></section>';
-    var banner = running ? '' : '<div class="banner">' + ic('pause', 22, 2.5) + 'Player timers are paused too. Subs still work.</div>';
+    var banner = running ? '' : '<div class="banner">' + ic('pause', 22, 2.5) + 'Clock paused. Subs still work.</div>';
     var bench = benchIds(g), avail = availBench(g);
     var tabs = '<div class="tabs-wrap"><div class="seg tabs">' +
       '<button type="button" data-act="tab" data-id="court" aria-pressed="' + (V.tab === 'court') + '">On court (' + g.on.length + ')</button>' +
@@ -711,14 +713,9 @@ button:disabled { cursor: default; }
         return (g.p[a].fouled ? 1 : 0) - (g.p[b].fouled ? 1 : 0) || (R ? inR(R.on, b) - inR(R.on, a) : 0) || byNum(a, b);
       }).map(function (id) { return card(g, id, R, 'bench'); }).join('') : '<div class="empty-row">Everyone is on court.</div>';
     }
-    var chips = '';
-    if (R) {
-      chips = '<div class="chips" aria-label="Suggested subs: ' + R.off.length + ' off, ' + R.on.length + ' on">' +
-        chip('off', R.off.length + ' OFF', true) + chip('on', R.on.length + ' ON', true) + '</div>';
-    } else {
-      var nx = nextSubAt(g);
-      if (nx != null) chips = '<div class="next"><span>Next subs</span><b>' + fmtClock(nx) + '</b></div>';
-    }
+    var nums = function (ids) { return ids.length <= 3 ? ids.map(function (id) { return '#' + num(id); }).join(' ') : String(ids.length); };
+    var chips = R ? '<div class="chips" aria-label="Next off: ' + R.off.map(num).join(', ') + '. Next on: ' + R.on.map(num).join(', ') + '">' +
+      chip('off', nums(R.off) + ' OFF', true) + chip('on', nums(R.on) + ' ON', true) + '</div>' : '';
     var nOff = V.sel.off.length, nOn = V.sel.on.length, stg = V.stage;
     var names = function (ids) { return ids.map(function (id) { return '#' + num(id) + (ids.length > 2 ? '' : ' ' + esc(first(id))); }).join(', '); };
     var cancel = '<button type="button" class="btn-side" data-act="clearSel">Cancel</button>';
@@ -1016,7 +1013,7 @@ button:disabled { cursor: default; }
         var so = V.sel.off, sn = V.sel.on;
         if (so.length && so.length === sn.length) { doSubs(so.slice(), sn.slice()); break; }
         if (!so.length && !sn.length) {
-          var R0 = recInfo(g);
+          var R0 = V.lastRec;
           if (!R0) { V.toast = { kind: 'msg', title: 'Tap the players coming off first', until: now() + 2500 }; break; }
           V.tab = 'court';
           if (R0.off.length === R0.on.length) { V.sel.off = R0.off.slice(); V.sel.on = R0.on.slice(); }
@@ -1106,11 +1103,11 @@ button:disabled { cursor: default; }
     app.querySelectorAll('[data-total]').forEach(function (el) { var id = el.getAttribute('data-total'); if (g.p[id]) el.textContent = fmt(total(g, id)); });
     var u = app.querySelector('[data-undo-left]');
     if (u && V.toast) u.textContent = Math.max(0, Math.ceil((V.toast.until - now()) / 1000));
-    var R = recInfo(g), k = R ? R.key : '';
-    if (k !== V.dueKey) {
-      if (R) buzz();
-      if (V.sheet || V.sel.off.length || V.sel.on.length) { V.dueKey = k; return; } // don't reshuffle under the coach's thumb
-      render();
+    if (now() - (V.recCheck || 0) > 15000) {
+      V.recCheck = now();
+      var R = recInfo(g), k = R ? R.key : '';
+      // only redraw when the suggestion changes and the coach isn't mid-tap
+      if (k !== V.dueKey && !V.sheet && !V.sel.off.length && !V.sel.on.length && !V.toast) render();
     }
   }
 
