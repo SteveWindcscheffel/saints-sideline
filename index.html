@@ -398,8 +398,10 @@ button:disabled { cursor: default; }
   function fmtDate(t) { try { return new Date(t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return new Date(t).toDateString(); } }
 
   /* ---------- game maths (all timestamp based, so the clock survives the phone locking) ---------- */
-  function pElapsed(g) { return g.el + (g.runAt ? now() - g.runAt : 0); }
-  function isOver(g) { return pElapsed(g) >= g.len; }
+  function isLast(g) { return g.period >= g.periods; }
+  // Earlier halves stop at 0:00 on their own; only the final half can run on past 0:00.
+  function pElapsed(g) { var e = g.el + (g.runAt ? now() - g.runAt : 0); return isLast(g) ? e : Math.min(g.len, e); }
+  function isOver(g) { return isLast(g) && pElapsed(g) >= g.len; }
   // Counts down to 0:00, then counts up as +00:12 until the half is ended by hand.
   function clockText(g) { var r = g.len - pElapsed(g); return r >= 0 ? fmtClock(r) : '+' + fmtClock(-r); }
   function gms(g) { return g.done + pElapsed(g); }
@@ -1109,6 +1111,7 @@ button:disabled { cursor: default; }
     if (V.toast && now() > V.toast.until) { V.toast = null; render(); return; }
     var g = S.game;
     if (!g || g.phase !== 'live') return;
+    if (!isLast(g) && g.runAt && pElapsed(g) >= g.len) { endPeriod(); save(); buzz(); render(); return; }
     if (isOver(g) !== !!app.querySelector('.clock.over')) { if (isOver(g)) buzz(); if (!V.sheet) { render(); return; } }
     app.querySelectorAll('[data-clock]').forEach(function (c) { c.textContent = clockText(g); });
     app.querySelectorAll('[data-stint]').forEach(function (el) { var id = el.getAttribute('data-stint'); if (g.p[id]) el.textContent = fmt(stint(g, id)); });
